@@ -1,1 +1,199 @@
-# sitedosaulo
+# sitedosaulo<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Corrida Retrô</title>
+    <style>
+        body {
+            background-color: #222;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        canvas {
+            border: 4px solid #fff;
+            background-color: #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        .instrucoes {
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>CORRIDA 32-BITS</h1>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div class="instrucoes">
+        <p>Use as setas <strong>Esquerda</strong> e <strong>Direita</strong> para desviar!</p>
+    </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Configurações do Jogo
+let pontuacao = 0;
+let gameOver = false;
+let velocidadePista = 5;
+
+// Jogador (Estilo Pixel Art / Retrô)
+const jogador = {
+    x: 180,
+    y: 500,
+    largura: 40,
+    altura: 60,
+    cor: '#e74c3c',
+    velocidade: 6
+};
+
+// Obstáculos (Outros carros na pista)
+const obstaculos = [];
+function CriarObstaculo() {
+    const faixas = [60, 150, 240, 310];
+    const xAleatorio = faixas[Math.floor(Math.random() * faixas.length)];
+    obstaculos.push({
+        x: xAleatorio,
+        y: -70,
+        largura: 40,
+        altura: 60,
+        cor: '#3498db',
+        velocidade: Math.random() * 2 + 3
+    });
+}
+
+// Controle de Teclas
+const teclas = {};
+window.addEventListener('keydown', e => teclas[e.key] = true);
+window.addEventListener('keyup', e => teclas[e.key] = false);
+
+// Linhas da Pista (Para efeito de movimento)
+let offsetLinhas = 0;
+
+function atualizar() {
+    if (gameOver) return;
+
+    // Movimentação do Jogador
+    if (teclas['ArrowLeft'] && jogador.x > 50) {
+        jogador.x -= jogador.velocidade;
+    }
+    if (teclas['ArrowRight'] && jogador.x < canvas.width - 50 - jogador.largura) {
+        jogador.x += jogador.velocidade;
+    }
+
+    // Animação da pista
+    offsetLinhas += velocidadePista;
+    if (offsetLinhas > 40) offsetLinhas = 0;
+
+    // Atualizar Obstáculos
+    if (Math.random() < 0.02) {
+        CriarObstaculo();
+    }
+
+    for (let i = 0; i < obstaculos.length; i++) {
+        let obs = obstaculos[i];
+        obs.y += obs.velocidade + (velocidadePista * 0.5);
+
+        // Detecção de Colisão
+        if (
+            jogador.x < obs.x + obs.largura &&
+            jogador.x + jogador.largura > obs.x &&
+            jogador.y < obs.y + obs.altura &&
+            jogador.y + jogador.altura > obs.y
+        ) {
+            gameOver = true;
+        }
+
+        // Remover obstáculos que saíram da tela e pontuar
+        if (obs.y > canvas.height) {
+            obstaculos.splice(i, 1);
+            i--;
+            pontuacao += 10;
+        }
+    }
+}
+
+function desenhar() {
+    // Fundo (Grama e Pista)
+    ctx.fillStyle = '#27ae60'; // Grama
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#555'; // Asfalto
+    ctx.fillRect(40, 0, canvas.width - 80, canvas.height);
+
+    // Linhas da Pista
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 6;
+    ctx.setLineDash([20, 20]);
+    ctx.lineDashOffset = -offsetLinhas;
+
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.stroke();
+    ctx.setLineDash([]); // Reseta linha pontilhada
+
+    // Desenhar Jogador (Sprite pixelado simples)
+    desenharCarrinho(jogador.x, jogador.y, jogador.cor);
+
+    // Desenhar Obstáculos
+    obstaculos.forEach(obs => {
+        desenharCarrinho(obs.x, obs.y, obs.cor);
+    });
+
+    // Pontuação
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Courier New';
+    ctx.fillText(`Pontos: ${pontuacao}`, 50, 30);
+
+    // Tela de Game Over
+    if (gameOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ff4757';
+        ctx.font = '30px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText('FIM DE JOGO!', canvas.width / 2, canvas.height / 2 - 20);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px Courier New';
+        ctx.fillText('Recarregue a página para jogar', canvas.width / 2, canvas.height / 2 + 20);
+    }
+}
+
+// Desenha um carrinho com visual retrô de blocos
+function desenharCarrinho(x, y, cor) {
+    ctx.fillStyle = cor;
+    ctx.fillRect(x, y, 40, 60); // Corpo principal
+
+    ctx.fillStyle = '#111'; // Rodas
+    ctx.fillRect(x - 4, y + 8, 6, 14);
+    ctx.fillRect(x + 38, y + 8, 6, 14);
+    ctx.fillRect(x - 4, y + 38, 6, 14);
+    ctx.fillRect(x + 38, y + 38, 6, 14);
+
+    ctx.fillStyle = '#81ecec'; // Parabrisa
+    ctx.fillRect(x + 6, y + 15, 28, 12);
+}
+
+function loop() {
+    atualizar();
+    desenhar();
+    if (!gameOver) {
+        requestAnimationFrame(loop);
+    }
+}
+
+loop();
+</script>
+
+</body>
+</html>
