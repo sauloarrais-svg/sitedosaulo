@@ -1,176 +1,202 @@
+HTML
+
 
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Primeira Galeria - GitHub</title>
-
+    <title>Jogo de Corrida Retrô</title>
     <style>
-        /* Reset básico para limpar margens do navegador */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
         body {
-            background-color: #f4f7f6;
-            color: #333;
-        }
-
-        header {
-            text-align: center;
-            padding: 40px 20px;
-            background-color: #ffffff;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        header h1 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-        }
-
-        /* --- CONCEITO: Flexbox e Classes --- */
-        .gallery-container {
+            background-color: #222;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
             display: flex;
-            flex-wrap: wrap; /* Faz os cards irem para a linha de baixo se não couberem */
-            justify-content: center; /* Centraliza os cards na tela */
-            gap: 30px; /* Espaçamento moderno entre os elementos flex */
-            padding: 40px 20px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
         }
-
-        /* Estilo do Card Individual */
-        .card {
-            background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            overflow: hidden; /* Garante que a imagem respeite as bordas arredondadas */
-            width: 300px;
-            transition: transform 0.2s;
+        canvas {
+            border: 4px solid #fff;
+            background-color: #333;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
-
-        .card:hover {
-            transform: translateY(-5px); /* Efeito sutil ao passar o mouse */
-        }
-
-        /* --- CONCEITO: Imagens e Espaçamentos --- */
-        .card img {
-            width: 100%; /* A imagem ocupa toda a largura do card */
-            height: 200px;
-            object-fit: cover; /* Não distorce a imagem */
-        }
-
-        .card-content {
-            padding: 20px; /* Espaçamento interno do texto */
-        }
-
-        .card-content h3 {
-            margin-bottom: 10px;
-            color: #2c3e50;
-        }
-
-        .card-content p {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 20px;
-            line-height: 1.4;
-        }
-
-        /* Estilo do Botão de Curtida */
-        .like-btn {
-            background-color: #ff4757;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-
-        .like-btn:hover {
-            background-color: #e84118;
-        }
-
-        /* Classe dinâmica que o JS pode adicionar */
-        .like-btn.liked {
-            background-color: #2ed573;
+        .instrucoes {
+            margin-top: 10px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>📸 Meu Primeiro Feed Interativo</h1>
-        <p>Projeto criado nas aulas de Web Development e hospedado no GitHub!</p>
-    </header>
+    <h1>CORRIDA 32-BITS</h1>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    <div class="instrucoes">
+        <p>Use as setas <strong>Esquerda</strong> e <strong>Direita</strong> para desviar!</p>
+    </div>
 
-    <main class="gallery-container">
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-        <div class="card">
-            <img src="https://picsum.photos/id/1015/300/200&quot; alt="Paisagem de Montanha">
-            <div class="card-content">
-                <h3>Aventura nas Montanhas</h3>
-                <p>Um dia incrível explorando a natureza e testando meus códigos.</p>
-                <button class="like-btn">❤️ <span class="like-count">0</span> Curtidas</button>
-            </div>
-        </div>
+// Configurações do Jogo
+let pontuacao = 0;
+let gameOver = false;
+let velocidadePista = 5;
 
-        <div class="card">
-            <img src="https://picsum.photos/id/1025/300/200&quot; alt="Cachorro fofo">
-            <div class="card-content">
-                <h3>Meu Companheiro de Code</h3>
-                <p>Garante que o código não tenha nenhum bug (ou sim!).</p>
-                <button class="like-btn">❤️ <span class="like-count">0</span> Curtidas</button>
-            </div>
-        </div>
+// Jogador (Estilo Pixel Art / Retrô)
+const jogador = {
+    x: 180,
+    y: 500,
+    largura: 40,
+    altura: 60,
+    cor: '#e74c3c',
+    velocidade: 6
+};
 
-        <div class="card">
-            <img src="https://picsum.photos/id/1043/300/200&quot; alt="Espaço de trabalho">
-            <div class="card-content">
-                <h3>Setup Organizado</h3>
-                <p>Foco total nas aulas de HTML, CSS e JavaScript desta semana.</p>
-                <button class="like-btn">❤️ <span class="like-count">0</span> Curtidas</button>
-            </div>
-        </div>
+// Obstáculos (Outros carros na pista)
+const obstaculos = [];
+function CriarObstaculo() {
+    const faixas = [60, 150, 240, 310];
+    const xAleatorio = faixas[Math.floor(Math.random() * faixas.length)];
+    obstaculos.push({
+        x: xAleatorio,
+        y: -70,
+        largura: 40,
+        altura: 60,
+        cor: '#3498db',
+        velocidade: Math.random() * 2 + 3
+    });
+}
 
-    </main>
+// Controle de Teclas
+const teclas = {};
+window.addEventListener('keydown', e => teclas[e.key] = true);
+window.addEventListener('keyup', e => teclas[e.key] = false);
 
-    <script>
-        // 1. Seleciona TODOS os botões de curtida da página (Eventos em múltiplos elementos)
-        const botoesLike = document.querySelectorAll('.like-btn');
+// Linhas da Pista (Para efeito de movimento)
+let offsetLinhas = 0;
 
-        // 2. Passa por cada botão usando o forEach
-        botoesLike.forEach(function(botao) {
-           
-            // Adiciona o evento de clique para CADA um dos botões
-            botao.addEventListener('click', function() {
-               
-                // Encontra o elemento <span> de número de curtidas específico DESTE card
-                const spanContador = botao.querySelector('.like-count');
-               
-                // Pega o número atual que está no texto e transforma em número inteiro
-                let curtidasAtuais = parseInt(spanContador.textContent);
-               
-                // --- CONCEITO: Lógica de curtidas ---
-                // Verifica se o usuário já curtiu (checando se a classe 'liked' existe no botão)
-                if (botao.classList.contains('liked')) {
-                    // Se já tinha curtido: remove a classe e diminui 1 do contador
-                    botao.classList.remove('liked');
-                    curtidasAtuais--;
-                } else {
-                    // Se não tinha curtido: adiciona a classe e aumenta 1 no contador
-                    botao.classList.add('liked');
-                    curtidasAtuais++;
-                }
-               
-                // Atualiza o texto do HTML com o novo valor (Contador de likes)
-                spanContador.textContent = curtidasAtuais;
-            });
-           
-        });
-    </script>
+function atualizar() {
+    if (gameOver) return;
+
+    // Movimentação do Jogador
+    if (teclas['ArrowLeft'] && jogador.x > 50) {
+        jogador.x -= jogador.velocidade;
+    }
+    if (teclas['ArrowRight'] && jogador.x < canvas.width - 50 - jogador.largura) {
+        jogador.x += jogador.velocidade;
+    }
+
+    // Animação da pista
+    offsetLinhas += velocidadePista;
+    if (offsetLinhas > 40) offsetLinhas = 0;
+
+    // Atualizar Obstáculos
+    if (Math.random() < 0.02) {
+        CriarObstaculo();
+    }
+
+    for (let i = 0; i < obstaculos.length; i++) {
+        let obs = obstaculos[i];
+        obs.y += obs.velocidade + (velocidadePista * 0.5);
+
+        // Detecção de Colisão
+        if (
+            jogador.x < obs.x + obs.largura &&
+            jogador.x + jogador.largura > obs.x &&
+            jogador.y < obs.y + obs.altura &&
+            jogador.y + jogador.altura > obs.y
+        ) {
+            gameOver = true;
+        }
+
+        // Remover obstáculos que saíram da tela e pontuar
+        if (obs.y > canvas.height) {
+            obstaculos.splice(i, 1);
+            i--;
+            pontuacao += 10;
+        }
+    }
+}
+
+function desenhar() {
+    // Fundo (Grama e Pista)
+    ctx.fillStyle = '#27ae60'; // Grama
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = '#555'; // Asfalto
+    ctx.fillRect(40, 0, canvas.width - 80, canvas.height);
+
+    // Linhas da Pista
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 6;
+    ctx.setLineDash([20, 20]);
+    ctx.lineDashOffset = -offsetLinhas;
+
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.stroke();
+    ctx.setLineDash([]); // Reseta linha pontilhada
+
+    // Desenhar Jogador (Sprite pixelado simples)
+    desenharCarrinho(jogador.x, jogador.y, jogador.cor);
+
+    // Desenhar Obstáculos
+    obstaculos.forEach(obs => {
+        desenharCarrinho(obs.x, obs.y, obs.cor);
+    });
+
+    // Pontuação
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Courier New';
+    ctx.fillText(`Pontos: ${pontuacao}`, 50, 30);
+
+    // Tela de Game Over
+    if (gameOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#ff4757';
+        ctx.font = '30px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText('FIM DE JOGO!', canvas.width / 2, canvas.height / 2 - 20);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px Courier New';
+        ctx.fillText('Recarregue a página para jogar', canvas.width / 2, canvas.height / 2 + 20);
+    }
+}
+
+// Desenha um carrinho com visual retrô de blocos
+function desenharCarrinho(x, y, cor) {
+    ctx.fillStyle = cor;
+    ctx.fillRect(x, y, 40, 60); // Corpo principal
+
+    ctx.fillStyle = '#111'; // Rodas
+    ctx.fillRect(x - 4, y + 8, 6, 14);
+    ctx.fillRect(x + 38, y + 8, 6, 14);
+    ctx.fillRect(x - 4, y + 38, 6, 14);
+    ctx.fillRect(x + 38, y + 38, 6, 14);
+
+    ctx.fillStyle = '#81ecec'; // Parabrisa
+    ctx.fillRect(x + 6, y + 15, 28, 12);
+}
+
+function loop() {
+    atualizar();
+    desenhar();
+    if (!gameOver) {
+        requestAnimationFrame(loop);
+    }
+}
+
+loop();
+</script>
+
 </body>
 </html>
